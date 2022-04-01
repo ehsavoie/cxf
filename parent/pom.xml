@@ -1858,11 +1858,6 @@
                 </exclusions>
             </dependency>
             <dependency>
-                <groupId>org.apache.santuario</groupId>
-                <artifactId>xmlsec</artifactId>
-                <version>${cxf.xmlsec.bundle.version}</version>
-            </dependency>
-            <dependency>
                 <groupId>org.apache.wss4j</groupId>
                 <artifactId>wss4j-ws-security-dom</artifactId>
                 <version>${cxf.jakarta.wss4j.version}</version>
