@@ -24,6 +24,7 @@ import java.io.OutputStream;
 import java.io.Reader;
 import java.io.Writer;
 import java.net.URL;
+import java.util.Collections;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
@@ -33,8 +34,13 @@ import jakarta.jms.ConnectionFactory;
 import jakarta.jms.DeliveryMode;
 import org.apache.activemq.artemis.core.config.Configuration;
 import org.apache.activemq.artemis.core.config.impl.ConfigurationImpl;
+import org.apache.activemq.artemis.core.config.impl.SecurityConfiguration;
+import org.apache.activemq.artemis.core.security.Role;
 import org.apache.activemq.artemis.core.server.embedded.EmbeddedActiveMQ;
+import org.apache.activemq.artemis.core.settings.impl.AddressSettings;
 import org.apache.activemq.artemis.jms.client.ActiveMQConnectionFactory;
+import org.apache.activemq.artemis.spi.core.security.ActiveMQJAASSecurityManager;
+import org.apache.activemq.artemis.spi.core.security.jaas.InVMLoginModule;
 import org.apache.cxf.Bus;
 import org.apache.cxf.BusFactory;
 import org.apache.cxf.helpers.IOUtils;
@@ -59,7 +65,7 @@ import static org.junit.Assert.fail;
 public abstract class AbstractJMSTester {
     protected static final String WSDL = "/jms_test.wsdl";
     protected static final String SERVICE_NS = "http://cxf.apache.org/hello_world_jms";
-    protected static final int MAX_RECEIVE_TIME = 10;
+    protected static final int MAX_RECEIVE_TIME = 15;
     protected static Bus bus;
     protected static ActiveMQConnectionFactory cf1;
     protected static ConnectionFactory cf;
@@ -77,13 +83,35 @@ public abstract class AbstractJMSTester {
         final Configuration config = new ConfigurationImpl();
         config.setPersistenceEnabled(false);
         config.setJMXManagementEnabled(false);
-        config.setSecurityEnabled(false);
+        config.setSecurityEnabled(true);
         config.addAcceptorConfiguration("tcp", brokerUri);
+        config.setPopulateValidatedUser(true);
+        config.putSecurityRoles("#", Collections.singleton(
+                new Role("guest", true, true, true, true, true, true, true, true, true, true)));
+        config.setAddressQueueScanPeriod(10);
+        AddressSettings addressSettings = new AddressSettings();
+        addressSettings.setAutoCreateAddresses(true);
+        addressSettings.setAutoCreateQueues(true);
+        addressSettings.setAutoDeleteQueues(false);
+        addressSettings.setAutoDeleteAddresses(false);
+        config.setAddressesSettings(Collections.singletonMap("#", new AddressSettings()));
         broker = new EmbeddedActiveMQ();
         broker.setConfiguration(config);
+        SecurityConfiguration securityConfig = new SecurityConfiguration();
+        securityConfig.addUser("guest", "guest");
+        securityConfig.addUser("testUser", "testPassword");
+        securityConfig.addRole("testUser", "guest");
+        securityConfig.addRole("guest", "guest");
+        securityConfig.setDefaultUser("guest");
+        ActiveMQJAASSecurityManager securityManager = 
+                new ActiveMQJAASSecurityManager(InVMLoginModule.class.getName(), securityConfig);
+        broker.setSecurityManager(securityManager);
         broker.start();
         bus = BusFactory.getDefaultBus();
         cf1 = new ActiveMQConnectionFactory(brokerUri);
+        cf1.setUser("guest");
+        cf1.setPassword("guest");
+        cf1.setDeserializationWhiteList("org.apache.cxf.security");
         cf = cf1;
     }
 

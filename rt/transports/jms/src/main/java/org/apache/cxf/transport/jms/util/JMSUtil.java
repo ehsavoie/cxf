@@ -123,7 +123,7 @@ public final class JMSUtil {
 
     public static Queue createQueue(Connection connection, String name) throws JMSException {
         if (connection instanceof XAConnection) { 
-            try (Session session = ((XAConnection)connection).createXASession()) {
+            try (Session session = ((XAConnection)connection).createSession(false, Session.AUTO_ACKNOWLEDGE)) {
                 return session.createQueue(name);
             }
         } else {

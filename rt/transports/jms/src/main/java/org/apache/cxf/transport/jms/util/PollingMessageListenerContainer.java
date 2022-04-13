@@ -146,7 +146,7 @@ public class PollingMessageListenerContainer extends AbstractMessageListenerCont
                      */
                     Session session = closer.register(connection.createSession(transacted, acknowledgeMode));
                     MessageConsumer consumer = closer.register(createConsumer(connection, session));
-                    Message message = consumer.receive(1000);
+                    Message message = consumer.receive(2000);
                     try {
                         if (message != null) {
                             listenerHandler.onMessage(message);

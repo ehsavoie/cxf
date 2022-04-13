@@ -393,6 +393,7 @@ public class JMSDestinationTest extends AbstractJMSTester {
 
         // set up MessageObserver for handling the conduit message
         MessageObserver observer = new MessageObserver() {
+            @Override
             public void onMessage(Message m) {
                 Exchange exchange = new ExchangeImpl();
                 exchange.setInMessage(m);
@@ -435,6 +436,7 @@ public class JMSDestinationTest extends AbstractJMSTester {
     }
     
     @Test
+    @Ignore
     public void testTemporaryQueueDeletionUponReset() throws Exception {
         EndpointInfo ei = setupServiceInfo("HelloWorldService", "HelloWorldPort");
 
