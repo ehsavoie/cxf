@@ -18,6 +18,7 @@
  */
 package org.apache.cxf.transport.jms.util;
 
+import java.io.File;
 import java.util.Enumeration;
 
 import javax.transaction.xa.XAException;
@@ -122,7 +123,6 @@ public class MessageListenerTest {
         TransactionManager loadedTm = ServiceUtils.getTransactionManager();
         purgeQueue(DLQ);
         try (Connection connection = createXAConnection("brokerJTA")) {
-            server.createQueue("testJTA");
             ServiceUtils.setTransactionManager(transactionManager);
             Queue dest = JMSUtil.createQueue(connection, "testJTA");
                 
@@ -241,7 +241,7 @@ public class MessageListenerTest {
                 Thread.sleep(100L)) {
             actualNum = 0;
             for (Enumeration<?> messages = browser.getEnumeration(); messages.hasMoreElements(); actualNum++) {
-                messages.nextElement();
+                System.out.println("Messages in queue " + queue.getQueueName() + ": " + messages.nextElement());
             }
             if (actualNum == expectedNum) {
                 break;
@@ -300,6 +300,8 @@ public class MessageListenerTest {
 
     private static Configuration getConfiguration() {
         try {
+            String targetPath = new File("target").getAbsolutePath();
+            System.setProperty("artemis.instance", targetPath);
             return new ConfigurationImpl()
                     .setSecurityEnabled(false)
                     .setAddressQueueScanPeriod(10)
@@ -308,6 +310,7 @@ public class MessageListenerTest {
                             new AddressSettings()
                                     .setMaxDeliveryAttempts(1)
                                     .setRedeliveryDelay(10L)
+                                    .setExpiryAddress(SimpleString.toSimpleString(DLQ))
                                     .setDeadLetterAddress(
                                             SimpleString.toSimpleString(DLQ)));
         } catch (final Exception ex) {

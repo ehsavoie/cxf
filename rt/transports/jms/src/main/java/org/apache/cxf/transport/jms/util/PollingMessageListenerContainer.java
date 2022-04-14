@@ -30,6 +30,8 @@ import jakarta.jms.MessageConsumer;
 import jakarta.jms.MessageListener;
 import jakarta.jms.Session;
 import jakarta.jms.Topic;
+import jakarta.jms.XAConnection;
+import jakarta.jms.XASession;
 import jakarta.transaction.Status;
 import jakarta.transaction.Transaction;
 import org.apache.cxf.common.logging.LogUtils;
@@ -132,7 +134,7 @@ public class PollingMessageListenerContainer extends AbstractMessageListenerCont
                         throw new IllegalStateException("External transactions are not supported in XAPoller");
                     }
                     transactionManager.begin();
-
+                    Transaction transaction = transactionManager.getTransaction();
                     Connection connection;
                     if (getConnection() == null) {
                         connection = closer.register(createConnection());
@@ -144,7 +146,14 @@ public class PollingMessageListenerContainer extends AbstractMessageListenerCont
                      * Create session inside transaction to give it the
                      * chance to enlist itself as a resource
                      */
-                    Session session = closer.register(connection.createSession(transacted, acknowledgeMode));
+                    Session session;
+                    if (connection instanceof XAConnection) {
+                        XASession xaSession = closer.register(((XAConnection)connection).createXASession());
+                        transaction.enlistResource(xaSession.getXAResource());
+                        session = (Session) xaSession;
+                    } else {
+                        session = closer.register(connection.createSession(transacted, acknowledgeMode));
+                    }
                     MessageConsumer consumer = closer.register(createConsumer(connection, session));
                     Message message = consumer.receive(2000);
                     try {
